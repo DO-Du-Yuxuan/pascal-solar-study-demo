@@ -10,7 +10,7 @@ export function localDateTimeToInstant(
   timeZone: string,
 ): Date {
   if (!isValidTimeZone(timeZone)) {
-    throw new RangeError(`Invalid IANA time zone: ${timeZone}`)
+    throw new RangeError(`无效的 IANA 时区：${timeZone}`)
   }
 
   const wholeMinutes = Math.max(0, Math.min(1439, Math.round(localTimeMinutes)))
@@ -24,7 +24,7 @@ export function localDateTimeToInstant(
   })
 
   if (!dateTime.isValid) {
-    throw new RangeError(`Invalid local date: ${localDate}`)
+    throw new RangeError(`无效的当地日期：${localDate}`)
   }
 
   return dateTime.toJSDate()
@@ -47,13 +47,13 @@ export function getMinuteOfDayInZone(instant: Date | null, timeZone: string): nu
 
 export function getDayOfYear(localDate: string): number {
   const dateTime = DateTime.fromISO(localDate)
-  if (!dateTime.isValid) throw new RangeError(`Invalid local date: ${localDate}`)
+  if (!dateTime.isValid) throw new RangeError(`无效的当地日期：${localDate}`)
   return dateTime.ordinal
 }
 
 export function dateFromDayOfYear(year: number, dayOfYear: number): string {
   const dateTime = DateTime.fromObject({ year, ordinal: dayOfYear })
-  if (!dateTime.isValid) throw new RangeError(`Invalid day ${dayOfYear} for ${year}`)
+  if (!dateTime.isValid) throw new RangeError(`${year} 年不存在第 ${dayOfYear} 天`)
   return dateTime.toISODate() ?? `${year}-01-01`
 }
 
@@ -63,6 +63,6 @@ export function daysInYear(year: number): number {
 
 export function getYear(localDate: string): number {
   const dateTime = DateTime.fromISO(localDate)
-  if (!dateTime.isValid) throw new RangeError(`Invalid local date: ${localDate}`)
+  if (!dateTime.isValid) throw new RangeError(`无效的当地日期：${localDate}`)
   return dateTime.year
 }

@@ -35,7 +35,7 @@ export default function App() {
     } catch (error) {
       return {
         solarState: null,
-        error: error instanceof Error ? error.message : 'Unable to calculate the solar position.',
+        error: error instanceof Error ? error.message : '无法计算当前太阳位置。',
       }
     }
   }, [input])
@@ -44,19 +44,19 @@ export default function App() {
     <main className="app-shell">
       <header className="topbar">
         <div>
-          <p className="eyebrow">PASCAL · ENVIRONMENT STUDY</p>
-          <h1>Solar & Shadow Lab</h1>
+          <p className="eyebrow">PASCAL · 环境分析</p>
+          <h1>太阳与阴影实验室</h1>
         </div>
         <div className="topbar-meta">
           <span className={result.solarState?.isAboveHorizon ? 'status daylight' : 'status night'}>
-            <i /> {result.solarState?.isAboveHorizon ? 'Direct sun active' : 'Direct sun off'}
+            <i /> {result.solarState?.isAboveHorizon ? '直射阳光已开启' : '直射阳光已关闭'}
           </span>
           <span>{values.localDate} · {Math.floor(values.localTimeMinutes / 60).toString().padStart(2, '0')}:{(values.localTimeMinutes % 60).toString().padStart(2, '0')}</span>
         </div>
       </header>
 
       <div className="workspace">
-        <section className="viewer" aria-label="Interactive 3D solar study viewer">
+        <section className="viewer" aria-label="交互式三维太阳研究视图">
           <SolarScene
             input={input}
             solarState={result.solarState}
@@ -64,8 +64,8 @@ export default function App() {
             showGrid={values.showGrid}
             showSunPath={values.showSunPath}
           />
-          <div className="viewer-help">Orbit · left drag &nbsp; Pan · right drag &nbsp; Zoom · wheel</div>
-          <div className="axis-legend"><span className="x">X</span> East <span className="y">Y</span> Up <span className="z">Z</span> Scene north</div>
+          <div className="viewer-help">旋转 · 左键拖动 &nbsp; 平移 · 右键拖动 &nbsp; 缩放 · 滚轮</div>
+          <div className="axis-legend"><span className="x">X</span> 东 <span className="y">Y</span> 上 <span className="z">Z</span> 场景北</div>
         </section>
         <ControlPanel solarState={result.solarState} error={result.error} />
       </div>

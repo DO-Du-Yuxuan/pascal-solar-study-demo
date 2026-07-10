@@ -9,20 +9,20 @@ export function validatePascalJson(value: unknown): PascalValidationResult {
     return {
       valid: false,
       summary: null,
-      message: 'Expected a top-level nodes object.',
+      message: 'JSON 顶层必须包含 nodes 对象。',
     }
   }
 
   const countsByType: Record<string, number> = {}
   const nodes = Object.values(value.nodes)
   for (const node of nodes) {
-    const type = isRecord(node) && typeof node.type === 'string' ? node.type : 'Unknown'
+    const type = isRecord(node) && typeof node.type === 'string' ? node.type : '未知类型'
     countsByType[type] = (countsByType[type] ?? 0) + 1
   }
 
   return {
     valid: true,
     summary: { totalNodes: nodes.length, countsByType },
-    message: 'JSON structure is valid for milestone-one diagnostics.',
+    message: 'JSON 结构有效，已完成第一阶段诊断。',
   }
 }

@@ -13,7 +13,7 @@ export function PascalImport() {
       const parsed: unknown = JSON.parse(await file.text())
       setResult(validatePascalJson(parsed))
     } catch {
-      setResult({ valid: false, summary: null, message: 'The selected file is not valid JSON.' })
+      setResult({ valid: false, summary: null, message: '所选文件不是有效的 JSON。' })
     }
   }
 
@@ -38,16 +38,16 @@ export function PascalImport() {
         }}
       />
       <button type="button" className="secondary-button" onClick={() => inputRef.current?.click()}>
-        Import Pascal JSON
+        导入 Pascal JSON
       </button>
-      <span>or drop a local file</span>
+      <span>或将本地文件拖放到此处</span>
       {fileName && <strong>{fileName}</strong>}
       {result && (
         <div className={result.valid ? 'import-result valid' : 'import-result invalid'}>
           <p>{result.message}</p>
           {result.summary && (
             <>
-              <b>{result.summary.totalNodes} nodes</b>
+              <b>共 {result.summary.totalNodes} 个节点</b>
               <ul>
                 {Object.entries(result.summary.countsByType)
                   .sort(([a], [b]) => a.localeCompare(b))
@@ -57,7 +57,7 @@ export function PascalImport() {
           )}
         </div>
       )}
-      <small>Pascal geometry rendering will be implemented in the next milestone.</small>
+      <small>Pascal 几何渲染将在下一个里程碑中实现。</small>
     </div>
   )
 }

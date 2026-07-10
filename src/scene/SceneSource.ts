@@ -7,7 +7,7 @@ export interface SceneSourceDescriptor {
 
 export const DEMO_SCENE_SOURCE: SceneSourceDescriptor = {
   id: 'simplified-two-storey-house',
-  label: 'Simplified two-storey residence',
+  label: '简化双层住宅',
   kind: 'demo',
   renderStatus: 'ready',
 }

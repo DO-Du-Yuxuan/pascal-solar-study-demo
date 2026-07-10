@@ -93,7 +93,7 @@ function Compass({ northOffsetDeg }: { northOffsetDeg: number }) {
         <meshBasicMaterial color="#e94e3d" />
       </mesh>
       <Html position={[0, 0.25, 3.65]} center transform distanceFactor={10} occlude>
-        <span className="compass-label">TRUE N</span>
+        <span className="compass-label">真北</span>
       </Html>
     </group>
   )
