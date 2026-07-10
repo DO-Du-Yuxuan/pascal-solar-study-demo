@@ -1,0 +1,8 @@
+{
+  "name": "Fictional diagnostic fixture",
+  "nodes": {
+    "node-1": { "type": "Wall" },
+    "node-2": { "type": "Window" },
+    "node-3": { "type": "Slab" }
+  }
+}
