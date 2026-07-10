@@ -103,7 +103,6 @@ function SceneContent(props: SolarSceneProps) {
   return (
     <>
       <color attach="background" args={['#e8edf0']} />
-      <fog attach="fog" args={['#e8edf0', 35, 85]} />
       <ambientLight intensity={0.75} color="#c8d6df" />
       <hemisphereLight args={['#dbe9f1', '#8c938d', 0.65]} />
       <SunLight solarState={props.solarState} />
