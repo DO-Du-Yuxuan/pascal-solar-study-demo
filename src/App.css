@@ -1,5 +1,7 @@
 .app-shell {
-  height: 100%;
+  height: 100vh;
+  height: 100dvh;
+  min-height: 0;
   display: grid;
   grid-template-rows: 68px minmax(0, 1fr);
   overflow: hidden;
@@ -59,6 +61,7 @@
 }
 .control-section { padding: 17px 18px 18px; border-bottom: 1px solid var(--line); }
 .control-section h2 { margin: 0 0 13px; font-size: 11px; text-transform: uppercase; letter-spacing: .13em; color: #415159; }
+.control-section h3 { margin: 0; color: #40535a; font-size: 10px; letter-spacing: .06em; }
 .control-section label { display: grid; gap: 6px; color: #657177; font-size: 10px; font-weight: 700; letter-spacing: .02em; }
 .control-section input[type='text'],
 .control-section input[type='number'],
@@ -101,30 +104,36 @@
 .compact-select select { min-height: 32px; }
 .check { display: flex !important; align-items: center; gap: 5px !important; white-space: nowrap; cursor: pointer; }
 .check input { accent-color: var(--teal); }
-.jump-row, .season-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
-.season-row { grid-template-columns: repeat(4, 1fr); }
-.jump-row button, .season-row button {
-  min-height: 29px;
-  border: 1px solid #cbd3d5;
-  border-radius: 2px;
-  color: #46565d;
-  background: #fff;
-  font-size: 9px;
-  font-weight: 700;
-}
-.jump-row button:hover:not(:disabled), .season-row button:hover { border-color: #8fa2a8; color: #1f323a; }
-.jump-row button:disabled { opacity: .45; cursor: not-allowed; }
 .toggle-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.date-compare { margin-top: 15px; padding-top: 13px; border-top: 1px solid #d8dfe1; }
+.day-number-input { grid-template-columns: 1fr 92px; align-items: center; margin-top: 7px; }
+.day-number-input input { min-height: 30px !important; }
+.year-cycle-card { margin-top: 12px; padding: 11px; border: 1px solid #d3dcde; background: #eef4f4; }
+.year-cycle-card .playback-row { margin-bottom: 2px; }
+.cycle-progress { margin: 7px 0 0; color: #385259; font: 600 10px 'DM Mono', monospace; }
 
 .import-dropzone { display: grid; justify-items: start; gap: 7px; padding: 12px; border: 1px dashed #b8c3c6; background: #f0f3f3; color: #788489; font-size: 9px; }
 .import-dropzone .secondary-button { padding: 0 12px; }
 .import-dropzone strong { color: #36474e; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
 .import-dropzone small { line-height: 1.45; color: #7e898d; }
+.scene-source-row { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; width: 100%; }
+.scene-source-row button { min-height: 30px; border: 1px solid #c7d0d2; background: white; color: #56666c; font-size: 9px; font-weight: 700; }
+.scene-source-row button.source-active { border-color: var(--teal); color: #1f6764; background: #edf8f6; }
+.scene-source-row button:disabled { opacity: .45; }
+.import-message { margin: 0; color: #4e676c; }
+.import-message.invalid { color: #b63b34; }
 .import-result { width: 100%; padding: 8px; border-left: 3px solid #a7b2b5; background: white; color: #546167; }
 .import-result.valid { border-color: var(--teal); }
 .import-result.invalid { border-color: #c94d42; }
 .import-result p { margin: 0 0 4px; }
-.import-result ul { margin: 5px 0 0; padding-left: 16px; columns: 2; }
+.import-result ul { margin: 5px 0 0; padding-left: 16px; }
+.import-summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; margin: 7px 0; background: #e1e6e7; }
+.import-summary div { padding: 5px; background: #f7f9f9; }
+.import-summary dt { color: #7d898d; font-size: 7px; text-transform: uppercase; }
+.import-summary dd { margin: 2px 0 0; color: #2c3d43; font: 600 10px 'DM Mono', monospace; }
+.type-counts { columns: 2; }
+.import-result details { margin-top: 7px; }
+.import-result summary { cursor: pointer; font-weight: 700; }
 
 .solar-data { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; margin: 0; border: 1px solid #d9dfe1; background: #d9dfe1; }
 .solar-data div { min-width: 0; padding: 9px; background: white; }
@@ -134,8 +143,71 @@
 .solar-data .positive { color: var(--teal); }
 .solar-data .muted { color: #8c969a; }
 .error-message { margin: 0; color: #b63b34; font: 500 10px/1.5 'DM Mono', monospace; }
+.weather-data { margin-top: 10px; }
+.weather-summary { display: grid; gap: 6px; }
+.weather-keyline {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  color: #68777c;
+  font: 500 7px/1.4 'DM Mono', monospace;
+  white-space: nowrap;
+  scrollbar-width: thin;
+}
+.weather-key-data {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1px;
+  margin: 10px 0 0;
+  border: 1px solid #d9dfe1;
+  background: #d9dfe1;
+}
+.weather-key-data div { min-width: 0; padding: 8px; background: white; }
+.weather-key-data dt { color: #7a8589; font-size: 7px; text-transform: uppercase; }
+.weather-key-data dd { margin: 3px 0 0; color: #27363c; font: 600 9px/1.4 'DM Mono', monospace; overflow-wrap: anywhere; }
+.panel-details > summary {
+  padding: 9px 10px;
+  border: 1px solid #d1d9db;
+  color: #3f555d;
+  background: #f5f7f7;
+  cursor: pointer;
+  font: 700 10px 'DM Mono', monospace;
+}
+.panel-details[open] > summary { margin-bottom: 10px; border-color: #aebfc2; background: #edf3f3; }
+.panel-details-content { min-width: 0; }
+.nested-details { margin-top: 9px; border: 1px solid #d5dddf; background: #f8fafa; }
+.nested-details > summary { padding: 8px 9px; cursor: pointer; color: #355e65; font: 700 9px 'DM Mono', monospace; }
+.nested-details[open] > summary { border-bottom: 1px solid #d5dddf; background: #eef4f4; }
+.weather-source {
+  display: grid;
+  gap: 3px;
+  margin-top: 10px;
+  padding: 10px;
+  color: #5d696e;
+  background: #eef3f4;
+  font: 500 9px/1.5 'DM Mono', monospace;
+}
+.weather-source strong { color: #304249; }
+.weather-source p { margin: 4px 0; }
+.climate-content { padding: 9px; }
+.climate-content h3 { margin: 2px 0 7px; color: #41565d; font-size: 9px; }
+.climate-content h3:not(:first-child) { margin-top: 12px; }
+.climate-table-wrap { overflow-x: auto; border: 1px solid #d8dfe1; background: white; }
+.climate-table { width: 100%; min-width: 650px; border-collapse: collapse; color: #34464d; font: 500 8px/1.4 'DM Mono', monospace; }
+.climate-table th,
+.climate-table td { padding: 5px 6px; border-right: 1px solid #e2e7e8; border-bottom: 1px solid #e2e7e8; text-align: right; white-space: nowrap; }
+.climate-table thead th { position: sticky; top: 0; background: #edf2f3; color: #53666c; font-weight: 700; }
+.climate-table th:first-child { text-align: left; }
+.data-details-content { padding: 9px; color: #5d696e; font: 500 8px/1.5 'DM Mono', monospace; }
+.data-details-content p { margin: 3px 0; overflow-wrap: anywhere; }
+.data-details-content dl { margin: 8px 0 0; }
+.data-details-content dl div { margin: 0 0 6px; }
+.data-details-content dt { color: #334950; font-weight: 700; }
+.data-details-content dd { margin: 1px 0 0; }
+.data-warning { color: #9a5d1f; }
 
 @media (max-width: 900px) {
+  html, body, #root { overflow: visible; }
   .app-shell { height: auto; min-height: 100%; overflow: visible; }
   .topbar { position: sticky; top: 0; }
   .topbar-meta > span:last-child { display: none; }

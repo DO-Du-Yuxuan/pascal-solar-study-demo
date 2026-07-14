@@ -1,18 +1,20 @@
 import { useEffect } from 'react'
 import {
-  dateFromDayOfYear,
-  daysInYear,
-  getDayOfYear,
   getYear,
 } from '../solar'
 import { useSimulationStore } from './simulationStore'
+import { advanceYearMinuteCursor, fromYearMinuteCursor, toYearMinuteCursor } from './yearCycle'
 
 export function usePlaybackController(): void {
   useEffect(() => {
     let animationFrame = 0
     let previousTime = performance.now()
     let minuteCursor = useSimulationStore.getState().localTimeMinutes
-    let dayCursor = getDayOfYear(useSimulationStore.getState().localDate)
+    let yearCursor = toYearMinuteCursor(
+      useSimulationStore.getState().localDate,
+      useSimulationStore.getState().localTimeMinutes,
+    )
+    let cursorYear = getYear(useSimulationStore.getState().localDate)
 
     const animate = (now: number) => {
       const deltaSeconds = Math.min((now - previousTime) / 1000, 0.25)
@@ -38,24 +40,22 @@ export function usePlaybackController(): void {
       }
 
       if (state.yearPlaying) {
-        const currentOrdinal = getDayOfYear(state.localDate)
-        if (Math.abs(currentOrdinal - Math.floor(dayCursor)) > 1) dayCursor = currentOrdinal
         const year = getYear(state.localDate)
-        const maximum = daysInYear(year)
-        dayCursor += state.yearSpeed * deltaSeconds
-        if (dayCursor > maximum) {
-          if (state.yearLoop) dayCursor = 1 + ((dayCursor - 1) % maximum)
-          else {
-            dayCursor = maximum
-            state.setYearPlaying(false)
-          }
+        const currentCursor = toYearMinuteCursor(state.localDate, state.localTimeMinutes)
+        if (year !== cursorYear || Math.abs(currentCursor - Math.floor(yearCursor)) > 2) {
+          cursorYear = year
+          yearCursor = currentCursor
         }
-        const nextOrdinal = Math.floor(dayCursor)
-        if (nextOrdinal !== currentOrdinal) {
-          state.setLocalDate(dateFromDayOfYear(year, nextOrdinal))
+        const advanced = advanceYearMinuteCursor(yearCursor, state.yearSpeed * deltaSeconds, year, state.yearLoop)
+        yearCursor = advanced.cursor
+        const next = fromYearMinuteCursor(year, yearCursor)
+        if (next.localDate !== state.localDate || next.localTimeMinutes !== state.localTimeMinutes) {
+          state.setLocalDateTime(next.localDate, next.localTimeMinutes)
         }
+        if (advanced.completed) state.setYearPlaying(false)
       } else {
-        dayCursor = getDayOfYear(state.localDate)
+        cursorYear = getYear(state.localDate)
+        yearCursor = toYearMinuteCursor(state.localDate, state.localTimeMinutes)
       }
 
       animationFrame = requestAnimationFrame(animate)

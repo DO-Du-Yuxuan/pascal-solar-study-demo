@@ -27,21 +27,38 @@ World axes are `+Y` up, `+Z` scene north, and `+X` scene east.
 is never rotated by this control; only solar bearings are mapped into scene
 coordinates.
 
-## No real Pascal JSON in Git
+## Sanitized default Pascal model
 
-Residential JSON can reveal private layouts and private asset URLs. Import is
-local-only, private file patterns are ignored, and the committed fixture is
-wholly fictional and contains no geometry.
+Residential JSON can reveal private layouts and asset URLs. The deployed
+default model is an explicitly confirmed sanitized presentation export stored
+under `public/models/`. Other user-selected exports remain browser-local, and
+private file patterns plus `local-models/` stay ignored.
 
-## No Pascal native geometry systems yet
+## Local Pascal conversion boundary
 
-Depending on Pascal Editor internals now would obscure the domain boundary and
-turn a solar prototype into an importer project. A small `SceneSource` contract
-and `scene/pascal` folder preserve the next integration seam without premature
-abstractions.
+The browser reads the sanitized default export or a user-selected local export
+and converts raw nodes into a small renderer-facing model. Pascal hierarchy
+recovery and validation stay in `scene/pascal`; React renders only parsed
+levels, wall pieces, surfaces, roofs, and trees. No Pascal Editor runtime
+dependency or remote upload is introduced.
 
-## Stable fixed shadow frustum
+## Bounds-driven shadow frustum
 
-The milestone-one directional light targets the house center and uses a fixed
-orthographic shadow volume sized for the demo and ordinary shadow reach. This
-avoids per-frame bounds changes and shadow-camera jumping during playback.
+The imported renderer measures the actual building-and-tree bounds once after
+an import. The camera, directional-light target, and stable orthographic shadow
+volume derive from those bounds, so distant or tall trees remain included while
+solar playback changes only the light direction.
+
+## Analysis-oriented roof geometry
+
+Pascal roof nodes are converted into lightweight gable, hip, shed, and flat
+shadow geometry. Gambrel, mansard, dutch, and multi-segment intersections stay
+explicitly marked as approximations because solar obstruction is the goal, not
+editor-identical construction detailing.
+
+## Static NASA POWER history
+
+The browser never calls NASA at runtime. It parses the committed official
+extended hourly CSV, including its preamble, units, and missing-value markers.
+The UI converts Bellevue civil time to UTC and uses source irradiance only to
+drive qualitative lighting; climate summaries use the original hourly values.

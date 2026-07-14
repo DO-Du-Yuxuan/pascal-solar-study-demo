@@ -4,7 +4,7 @@ export const DEFAULT_SOLAR_INPUT = {
   timeZone: 'America/Los_Angeles',
   localDate: '2026-06-21',
   localTimeMinutes: 12 * 60,
-  northOffsetDeg: 0,
+  northOffsetDeg: 270,
 } as const
 
 export const LIGHT_DISTANCE = 42

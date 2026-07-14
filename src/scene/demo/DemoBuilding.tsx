@@ -1,4 +1,5 @@
 import type { ThreeElements } from '@react-three/fiber'
+import { DemoTrees } from './DemoTrees'
 
 const wallMaterial = { color: '#d9d1c2', roughness: 0.86 }
 const trimMaterial = { color: '#44525a', roughness: 0.64 }
@@ -135,6 +136,7 @@ export function DemoBuilding(props: ThreeElements['group']) {
         rotation={[0, 0, -0.25]}
         material={roofMaterial}
       />
+      <DemoTrees />
     </group>
   )
 }

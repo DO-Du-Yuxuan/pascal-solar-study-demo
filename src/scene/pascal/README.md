@@ -1,6 +1,12 @@
 # Pascal import boundary
 
-Milestone 1 only validates that a local JSON file has a top-level `nodes`
-object and reports node-type counts. Geometry reconstruction deliberately lives
-behind this folder boundary and is not implemented yet. Files are read locally
-in the browser and are never uploaded.
+The app loads a confirmed sanitized default Pascal JSON from `public/models/`.
+Users can still select another JSON, which is parsed only in browser memory and
+never uploaded. The raw document is converted by `parsePascalScene` into
+renderer-facing levels, walls, openings, analytical openings, surfaces, roofs,
+trees, and an exhaustive import report. React components do not traverse the
+raw export.
+
+Private residence exports stay under the ignored `local-models/` directory.
+Unsupported and deliberately ignored node types are reported instead of being
+silently discarded.

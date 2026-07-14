@@ -14,7 +14,11 @@
 }
 
 * { box-sizing: border-box; }
-html, body, #root { width: 100%; min-width: 320px; height: 100%; margin: 0; }
+html, body, #root { width: 100%; min-width: 320px; height: 100%; min-height: 100%; margin: 0; }
+
+@media (min-width: 901px) {
+  html, body, #root { overflow: hidden; }
+}
 button, input, select { font: inherit; }
 button { cursor: pointer; }
 
