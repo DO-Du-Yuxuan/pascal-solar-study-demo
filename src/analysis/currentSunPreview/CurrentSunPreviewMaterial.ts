@@ -27,6 +27,9 @@ export function createCurrentSunPreviewMaterial(): CurrentSunPreviewMaterial {
   }) as CurrentSunPreviewMaterial
   material.uniforms.color.value.set('#ffb23e')
   material.uniforms.opacity.value = 0
+  material.onBeforeRender = () => {
+    material.uniforms.opacity.value = material.opacity
+  }
   return material
 }
 

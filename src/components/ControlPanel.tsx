@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 import {
   dateFromDayOfYear,
   daysInYear,
@@ -102,15 +102,12 @@ export function ControlPanel({
   cumulativeRunning, cumulativeError, onCumulativeStart, onCumulativeCancel, onCumulativeResetScale,
 }: ControlPanelProps) {
   const state = useSimulationStore()
-  const [windowEditorOpen, setWindowEditorOpen] = useState(false)
+  const [closedWindowEditorId, setClosedWindowEditorId] = useState<string | null>(null)
   const selectedOpeningId = selectedOpening?.id
+  const windowEditorOpen = Boolean(selectedOpeningId && closedWindowEditorId !== selectedOpeningId)
   const year = getYear(state.localDate)
   const currentDay = getDayOfYear(state.localDate)
   const maxDay = daysInYear(year)
-
-  useEffect(() => {
-    if (selectedOpeningId) setWindowEditorOpen(true)
-  }, [selectedOpeningId])
 
   const setDayOfYear = (day: number) => {
     if (Number.isFinite(day) && day >= 1 && day <= maxDay) state.setLocalDate(dateFromDayOfYear(year, day))
@@ -255,7 +252,10 @@ export function ControlPanel({
         <details
           className="panel-details window-editor"
           open={windowEditorOpen}
-          onToggle={(event) => setWindowEditorOpen(event.currentTarget.open)}
+          onToggle={(event) => {
+            if (!selectedOpeningId) return
+            setClosedWindowEditorId(event.currentTarget.open ? null : selectedOpeningId)
+          }}
         >
           <summary>{selectedOpening ? `窗户编辑 · ${selectedOpening.name}` : '窗户编辑 · 请在模型中选择窗户'}</summary>
           <div className="panel-details-content">

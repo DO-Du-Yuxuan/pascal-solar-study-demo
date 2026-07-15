@@ -190,7 +190,16 @@ export function SolarAnalysisLayer({
       workerController.current?.dispose()
       workerController.current = null
     }
-  }, [cumulativeRunCommand?.requestId])
+  }, [
+    cumulativeGrids,
+    cumulativeOpenings,
+    cumulativeRunCommand,
+    onCumulativeError,
+    onCumulativeProgress,
+    onCumulativeResult,
+    onCumulativeRunningChange,
+    worldScene,
+  ])
 
   useEffect(() => {
     if (cumulativeCancelRequestId !== null && cumulativeCancelRequestId === cumulativeRunCommand?.requestId) {

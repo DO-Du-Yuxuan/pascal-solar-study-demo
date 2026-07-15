@@ -152,12 +152,9 @@ export default function App() {
     () => rangeKey(cumulativeSelection, values.localDate),
     [cumulativeSelection, values.localDate],
   )
-  useEffect(() => {
-    if (lockedScale && lockedScale.rangeKey !== currentCumulativeRangeKey) {
-      setLockedScale(null)
-      setCumulativeResult(null)
-    }
-  }, [currentCumulativeRangeKey, lockedScale])
+  const currentCumulativeResult = cumulativeResult?.rangeKey === currentCumulativeRangeKey
+    ? cumulativeResult
+    : null
   const startCumulativeAnalysis = useCallback(() => {
     if (!weatherDataset || !importedScene || cumulativeRunning) return
     const hours = selectCumulativeHours(weatherDataset, cumulativeSelection, values.localDate)
@@ -198,12 +195,16 @@ export default function App() {
     setCumulativeProgress(null)
   }, [lockedScale])
   const resetCumulativeScale = useCallback(() => {
-    if (!cumulativeResult) return
-    const value = positiveResultP95(cumulativeResult.grids)
+    if (!currentCumulativeResult) return
+    const value = positiveResultP95(currentCumulativeResult.grids)
     if (!value || value <= 0) return
-    setLockedScale({ rangeKey: cumulativeResult.rangeKey, value })
-    setCumulativeResult({ ...cumulativeResult, lockedScaleMaxKWhM2: value })
-  }, [cumulativeResult])
+    setLockedScale({ rangeKey: currentCumulativeResult.rangeKey, value })
+    setCumulativeResult({ ...currentCumulativeResult, lockedScaleMaxKWhM2: value })
+  }, [currentCumulativeResult])
+  const handleCumulativeRunningChange = useCallback((running: boolean) => {
+    setCumulativeRunning(running)
+    if (!running) setCumulativeRunCommand(null)
+  }, [])
 
   return (
     <main className="app-shell">
@@ -237,21 +238,18 @@ export default function App() {
             analysisDisplayMode={analysisDisplayMode}
             cumulativeRunCommand={cumulativeRunCommand}
             cumulativeCancelRequestId={cumulativeCancelRequestId}
-            cumulativeResult={cumulativeResult}
+            cumulativeResult={currentCumulativeResult}
             onOpeningSelect={setSelectedOpeningId}
             onWindowSolarChange={setWindowSolar}
             onCumulativeProgress={setCumulativeProgress}
             onCumulativeResult={handleCumulativeResult}
             onCumulativeError={setCumulativeError}
-            onCumulativeRunningChange={(running) => {
-              setCumulativeRunning(running)
-              if (!running) setCumulativeRunCommand(null)
-            }}
+            onCumulativeRunningChange={handleCumulativeRunningChange}
           />
           {analysisDisplayMode === 'current-sun-preview' && (
             <div className="analysis-mode-note">当前阳光预览 · 暖黄色区域表示当前可见直射阳光</div>
           )}
-          {analysisDisplayMode === 'cumulative-solar-energy' && !cumulativeRunning && !cumulativeResult && (
+          {analysisDisplayMode === 'cumulative-solar-energy' && !cumulativeRunning && !currentCumulativeResult && (
             <div className="analysis-mode-note cumulative-status-note">尚未计算 · 请在右侧选择时间范围后点击“开始计算”</div>
           )}
           {analysisDisplayMode === 'cumulative-solar-energy' && cumulativeRunning && (
@@ -259,17 +257,17 @@ export default function App() {
               正在计算累计直射太阳能量 · {cumulativeProgress?.progressPct.toFixed(0) ?? 0}%
             </div>
           )}
-          {analysisDisplayMode === 'cumulative-solar-energy' && !cumulativeRunning && cumulativeResult?.lockedScaleMaxKWhM2 === 0 && (
+          {analysisDisplayMode === 'cumulative-solar-energy' && !cumulativeRunning && currentCumulativeResult?.lockedScaleMaxKWhM2 === 0 && (
             <div className="analysis-mode-note cumulative-status-note">该时间范围内没有检测到室内直射太阳能量</div>
           )}
-          {analysisDisplayMode === 'cumulative-solar-energy' && cumulativeResult?.lockedScaleMaxKWhM2 && cumulativeResult.lockedScaleMaxKWhM2 > 0 && (
+          {analysisDisplayMode === 'cumulative-solar-energy' && currentCumulativeResult?.lockedScaleMaxKWhM2 && currentCumulativeResult.lockedScaleMaxKWhM2 > 0 && (
             <div className="heatmap-legend" aria-label="累计直射太阳能量图例">
               <strong>累计直射太阳能量</strong>
               <div className="cumulative-gradient" />
               <div className="heatmap-scale-values">
                 <span>0</span>
-                <span>{(cumulativeResult.lockedScaleMaxKWhM2 / 2).toFixed(2)}</span>
-                <span>{cumulativeResult.lockedScaleMaxKWhM2.toFixed(2)} kWh/m²</span>
+                <span>{(currentCumulativeResult.lockedScaleMaxKWhM2 / 2).toFixed(2)}</span>
+                <span>{currentCumulativeResult.lockedScaleMaxKWhM2.toFixed(2)} kWh/m²</span>
               </div>
             </div>
           )}
@@ -297,7 +295,7 @@ export default function App() {
             setCumulativeResult(null)
           }}
           cumulativeProgress={cumulativeProgress}
-          cumulativeResult={cumulativeResult}
+          cumulativeResult={currentCumulativeResult}
           cumulativeRunning={cumulativeRunning}
           cumulativeError={cumulativeError}
           onCumulativeStart={startCumulativeAnalysis}

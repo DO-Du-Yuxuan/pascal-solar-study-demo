@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo } from 'react'
+import { useEffect, useMemo } from 'react'
 import * as THREE from 'three'
 import type { FloorAnalysisGrid } from '../surfaceSampling'
 import {
@@ -25,9 +25,7 @@ export function CurrentSunPreviewMesh({
     return result
   }, [grid])
   const material = useMemo(() => createCurrentSunPreviewMaterial(), [])
-  useLayoutEffect(() => {
-    material.uniforms.opacity.value = currentSunPreviewOpacity(dniWm2, sunAboveHorizon)
-  }, [dniWm2, material, sunAboveHorizon])
+  const opacity = currentSunPreviewOpacity(dniWm2, sunAboveHorizon)
   useEffect(() => () => {
     geometry.dispose()
     material.dispose()
@@ -35,11 +33,12 @@ export function CurrentSunPreviewMesh({
   return (
     <mesh
       geometry={geometry}
-      material={material}
       castShadow={false}
       receiveShadow
       frustumCulled={false}
       renderOrder={9}
-    />
+    >
+      <primitive object={material} attach="material" opacity={opacity} />
+    </mesh>
   )
 }
