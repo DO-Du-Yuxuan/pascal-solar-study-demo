@@ -58,7 +58,7 @@ export const useSimulationStore = create<SimulationState>((set) => ({
   yearLoop: true,
   yearSpeed: 0.5,
   showAxes: false,
-  showGrid: true,
+  showGrid: false,
   showSunPath: true,
   weatherMode: 'nasa-power-2025',
   setLatitude: (latitude) => set({ latitude: clamp(latitude, -90, 90) }),

@@ -1,4 +1,6 @@
 import { Tree, TreePreset } from '@dgreenheck/ez-tree'
+import type { ThreeEvent } from '@react-three/fiber'
+import { Bvh } from '@react-three/drei'
 import { useLayoutEffect, useMemo, useRef } from 'react'
 import * as THREE from 'three'
 import type { SceneBounds } from '../SceneSource'
@@ -12,7 +14,13 @@ const ceilingMaterial = { color: '#dfe2df', roughness: 0.92 }
 const frameMaterial = { color: '#e5e3dc', roughness: 0.72 }
 const doorMaterial = { color: '#92745b', roughness: 0.78 }
 
-function OpeningAssembly({ opening, wall, levelElevation }: { opening: ParsedOpening; wall: ParsedWall; levelElevation: number }) {
+function OpeningAssembly({ opening, wall, levelElevation, selected, onSelect }: {
+  opening: ParsedOpening
+  wall: ParsedWall
+  levelElevation: number
+  selected: boolean
+  onSelect: (id: string) => void
+}) {
   const location = pointAndTangentAlongWall(wall, opening.offsetAlongWall)
   const yaw = Math.atan2(location.tangent[0], location.tangent[1])
   const frame = Math.min(opening.frameThickness, opening.width * 0.2, opening.height * 0.2)
@@ -27,7 +35,18 @@ function OpeningAssembly({ opening, wall, levelElevation }: { opening: ParsedOpe
       name={`Pascal ${opening.kind} ${opening.id}`}
       position={[location.point[0], levelElevation + opening.centerHeight, location.point[1]]}
       rotation={[0, yaw, 0]}
+      userData={{ openingId: opening.id }}
+      onPointerDown={(event: ThreeEvent<PointerEvent>) => {
+        event.stopPropagation()
+        onSelect(opening.id)
+      }}
     >
+      <mesh renderOrder={10}>
+        <boxGeometry args={[wall.thickness + 0.08, opening.height, opening.width]} />
+        <meshBasicMaterial transparent opacity={0} depthWrite={false} side={THREE.DoubleSide} />
+      </mesh>
+      {opening.enabled && (
+        <>
       <mesh castShadow receiveShadow position={[0, 0, -opening.width / 2 + frame / 2]}>
         <boxGeometry args={[depth, opening.height, frame]} />
         <meshStandardMaterial {...frameMaterial} />
@@ -64,11 +83,24 @@ function OpeningAssembly({ opening, wall, levelElevation }: { opening: ParsedOpe
           <meshStandardMaterial {...doorMaterial} />
         </mesh>
       )}
+        </>
+      )}
+      {selected && (
+        <mesh renderOrder={12}>
+          <boxGeometry args={[wall.thickness + 0.12, opening.height + 0.06, opening.width + 0.06]} />
+          <meshBasicMaterial color="#ff7a2f" wireframe depthTest={false} transparent opacity={0.95} />
+        </mesh>
+      )}
     </group>
   )
 }
 
-function WallGeometry({ levelElevation, walls }: { levelElevation: number; walls: ParsedPascalScene['levels'][number]['walls'] }) {
+function WallGeometry({ levelElevation, walls, selectedOpeningId, onOpeningSelect }: {
+  levelElevation: number
+  walls: ParsedPascalScene['levels'][number]['walls']
+  selectedOpeningId: string | null
+  onOpeningSelect: (id: string) => void
+}) {
   const pieces = useMemo(() => walls.flatMap(createWallPieces), [walls])
   return (
     <>
@@ -87,6 +119,7 @@ function WallGeometry({ levelElevation, walls }: { levelElevation: number; walls
               (piece.start[1] + piece.end[1]) / 2,
             ]}
             rotation={[0, Math.atan2(dx, dz), 0]}
+            userData={{ solarOccluder: true, obstructionKind: '墙体', surfaceId: piece.wallId }}
           >
             <boxGeometry args={[piece.thickness, piece.height, length]} />
             <meshStandardMaterial {...wallMaterial} />
@@ -94,7 +127,14 @@ function WallGeometry({ levelElevation, walls }: { levelElevation: number; walls
         )
       })}
       {walls.flatMap((wall) => wall.openings.map((opening) => (
-        <OpeningAssembly key={opening.id} opening={opening} wall={wall} levelElevation={levelElevation} />
+        <OpeningAssembly
+          key={opening.id}
+          opening={opening}
+          wall={wall}
+          levelElevation={levelElevation}
+          selected={opening.id === selectedOpeningId}
+          onSelect={onOpeningSelect}
+        />
       )))}
     </>
   )
@@ -118,7 +158,14 @@ function makeSurfaceGeometry(surface: ParsedSurface): THREE.ExtrudeGeometry {
 function Surface({ surface, kind }: { surface: ParsedSurface; kind: 'slab' | 'ceiling' }) {
   const geometry = useMemo(() => makeSurfaceGeometry(surface), [surface])
   return (
-    <mesh geometry={geometry} position={[0, surface.elevation, 0]} rotation={[-Math.PI / 2, 0, 0]} castShadow receiveShadow>
+    <mesh
+      geometry={geometry}
+      position={[0, surface.elevation, 0]}
+      rotation={[-Math.PI / 2, 0, 0]}
+      castShadow
+      receiveShadow
+      userData={{ solarOccluder: true, obstructionKind: kind === 'slab' ? '楼板' : '天花', surfaceId: surface.id }}
+    >
       <meshStandardMaterial {...(kind === 'slab' ? slabMaterial : ceilingMaterial)} side={THREE.DoubleSide} />
     </mesh>
   )
@@ -189,6 +236,8 @@ function Trees({ trees }: { trees: ParsedTree[] }) {
       object.position.set(...spec.position)
       object.rotation.set(...spec.rotation)
       object.name = `Pascal tree ${spec.id}`
+      object.userData.solarOccluder = true
+      object.userData.obstructionKind = '树木'
       return { id: spec.id, object }
     })
   }, [trees])
@@ -198,9 +247,11 @@ function Trees({ trees }: { trees: ParsedTree[] }) {
 interface PascalSceneProps {
   scene: ParsedPascalScene
   onBoundsChange: (bounds: SceneBounds) => void
+  selectedOpeningId: string | null
+  onOpeningSelect: (id: string) => void
 }
 
-export function PascalScene({ scene, onBoundsChange }: PascalSceneProps) {
+export function PascalScene({ scene, onBoundsChange, selectedOpeningId, onOpeningSelect }: PascalSceneProps) {
   const group = useRef<THREE.Group>(null)
 
   useLayoutEffect(() => {
@@ -213,14 +264,21 @@ export function PascalScene({ scene, onBoundsChange }: PascalSceneProps) {
 
   return (
     <group ref={group}>
-      {scene.levels.map((level) => (
-        <group key={level.id} name={level.name}>
-          <WallGeometry levelElevation={level.elevation} walls={level.walls} />
-          {level.slabs.map((surface) => <Surface key={surface.id} surface={surface} kind="slab" />)}
-          {level.ceilings.map((surface) => <Surface key={surface.id} surface={surface} kind="ceiling" />)}
-        </group>
-      ))}
-      <Roofs roofs={scene.roofs} />
+      <Bvh firstHitOnly maxLeafTris={20}>
+        {scene.levels.map((level) => (
+          <group key={level.id} name={level.name}>
+            <WallGeometry
+              levelElevation={level.elevation}
+              walls={level.walls}
+              selectedOpeningId={selectedOpeningId}
+              onOpeningSelect={onOpeningSelect}
+            />
+            {level.slabs.map((surface) => <Surface key={surface.id} surface={surface} kind="slab" />)}
+            {level.ceilings.map((surface) => <Surface key={surface.id} surface={surface} kind="ceiling" />)}
+          </group>
+        ))}
+        <Roofs roofs={scene.roofs} />
+      </Bvh>
       <Trees trees={scene.trees} />
     </group>
   )

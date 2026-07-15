@@ -24,6 +24,9 @@ export interface ParsedOpening {
   frameDepth: number
   glazingRatio: number
   glassHeightRatio: number
+  enabled: boolean
+  shgc: number
+  visibleTransmittance: number
 }
 
 export type AnalyticalOpeningKind = 'window' | 'glazed-door'
@@ -33,6 +36,7 @@ export interface AnalyticalOpening {
   name: string
   kind: AnalyticalOpeningKind
   levelId: string
+  wallId: string
   centerWorld: Vector3Tuple
   outwardNormalWorld: Vector3Tuple
   width: number
@@ -41,6 +45,8 @@ export interface AnalyticalOpening {
   glazingRatio: number
   glazedArea: number
   sillHeight: number
+  offsetAlongWall: number
+  enabled: boolean
   revealDepth: number
   orientationDeg: number
   shgc: number

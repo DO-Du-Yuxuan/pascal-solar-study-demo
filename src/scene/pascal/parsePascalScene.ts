@@ -192,6 +192,9 @@ function parseOpening(id: string, node: JsonRecord, kind: 'door' | 'window'): Pa
     frameDepth: positiveNumber(node.frameDepth, 0.07),
     glazingRatio,
     glassHeightRatio: kind === 'door' ? doorGlassHeightRatio(node) : 1,
+    enabled: true,
+    shgc: 0.4,
+    visibleTransmittance: 0.6,
   }
 }
 
@@ -526,6 +529,7 @@ export function parsePascalScene(value: unknown): ParsedPascalScene {
             name: stringValue(openingEntry.node.name, kind === 'window' ? `窗户 ${openingEntry.id}` : `玻璃门 ${openingEntry.id}`),
             kind,
             levelId: level.id,
+            wallId: wall.id,
             centerWorld: [location.point[0], level.elevation + clampedOpening.centerHeight, location.point[1]],
             outwardNormalWorld,
             width: clampedOpening.width,
@@ -534,10 +538,12 @@ export function parsePascalScene(value: unknown): ParsedPascalScene {
             glazingRatio,
             glazedArea: grossArea * glazingRatio,
             sillHeight: Math.max(0, clampedOpening.centerHeight - clampedOpening.height / 2),
+            offsetAlongWall: clampedOpening.offsetAlongWall,
+            enabled: clampedOpening.enabled,
             revealDepth: wall.thickness,
             orientationDeg: 0,
-            shgc: 0.4,
-            visibleTransmittance: 0.6,
+            shgc: clampedOpening.shgc,
+            visibleTransmittance: clampedOpening.visibleTransmittance,
             uValue: 1.8,
           })
         }

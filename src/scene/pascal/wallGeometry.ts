@@ -4,6 +4,7 @@ const EPSILON = 1e-5
 
 export interface WallPiece {
   id: string
+  wallId: string
   start: Point2
   end: Point2
   bottom: number
@@ -130,6 +131,7 @@ function splitSegment(
     for (const [bottom, top] of solidVerticalRanges(wall.height, localOpenings, (from + to) / 2)) {
       pieces.push({
         id: `${wall.id}-${segmentIndex}-${index}-${bottom.toFixed(4)}`,
+        wallId: wall.id,
         start: [start[0] + ux * from, start[1] + uz * from],
         end: [start[0] + ux * to, start[1] + uz * to],
         bottom,
@@ -142,7 +144,8 @@ function splitSegment(
 }
 
 export function createWallPieces(wall: ParsedWall): WallPiece[] {
-  const path = createWallPath(wall)
+  const activeWall = { ...wall, openings: wall.openings.filter((opening) => opening.enabled) }
+  const path = createWallPath(activeWall)
   const pieces: WallPiece[] = []
   let pathStart = 0
   for (let index = 0; index < path.length - 1; index += 1) {
@@ -150,7 +153,7 @@ export function createWallPieces(wall: ParsedWall): WallPiece[] {
     const end = path[index + 1]
     if (!start || !end) continue
     const length = Math.hypot(end[0] - start[0], end[1] - start[1])
-    if (length > EPSILON) pieces.push(...splitSegment(wall, index, start, end, pathStart, length))
+    if (length > EPSILON) pieces.push(...splitSegment(activeWall, index, start, end, pathStart, length))
     pathStart += length
   }
   return pieces

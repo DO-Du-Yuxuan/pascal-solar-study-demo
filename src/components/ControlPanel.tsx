@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import {
   dateFromDayOfYear,
   daysInYear,
@@ -7,15 +7,24 @@ import {
   getYear,
   type SolarState,
 } from '../solar'
-import type { ParsedPascalScene } from '../scene/pascal/types'
+import type { AnalyticalOpening, ParsedPascalScene } from '../scene/pascal/types'
 import type { SceneSourceKind } from '../scene/SceneSource'
 import { useSimulationStore } from '../state/simulationStore'
 import { PascalImport } from './PascalImport'
 import type { WeatherDataset, WeatherSnapshot } from '../weather/types'
+import type { EditableWindowContext, WindowEditPatch } from '../analysis/windowEditing'
+import type { WindowCurrentSolarResult } from '../analysis/windowCurrentSolar'
+import type { AnalysisDisplayMode } from '../scene/pascal/SolarAnalysisLayer'
+import type {
+  CumulativeDisplayResult,
+  CumulativeProgress,
+  CumulativeRangeSelection,
+} from '../analysis/cumulativeSolar/cumulativeSolarTypes'
+import { CumulativeSolarPanel } from './CumulativeSolarPanel'
 
-function Section({ title, children }: { title: string; children: ReactNode }) {
+function Section({ title, className = '', children }: { title: string; className?: string; children: ReactNode }) {
   return (
-    <section className="control-section">
+    <section className={`control-section ${className}`.trim()}>
       <h2>{title}</h2>
       {children}
     </section>
@@ -52,6 +61,22 @@ interface ControlPanelProps {
   weatherSnapshot: WeatherSnapshot | null
   weatherLoading: boolean
   weatherError: string | null
+  selectedWindow: EditableWindowContext | null
+  selectedOpening: AnalyticalOpening | null
+  windowSolar: WindowCurrentSolarResult | null
+  analysisDisplayMode: AnalysisDisplayMode
+  onAnalysisDisplayModeChange: (mode: AnalysisDisplayMode) => void
+  cumulativeSelection: CumulativeRangeSelection
+  onCumulativeSelectionChange: (selection: CumulativeRangeSelection) => void
+  cumulativeProgress: CumulativeProgress | null
+  cumulativeResult: CumulativeDisplayResult | null
+  cumulativeRunning: boolean
+  cumulativeError: string | null
+  onCumulativeStart: () => void
+  onCumulativeCancel: () => void
+  onCumulativeResetScale: () => void
+  onWindowEdit: (patch: WindowEditPatch) => void
+  onWindowRestore: () => void
 }
 
 function formatWeather(value: number | null | undefined, digits = 1): string {
@@ -71,11 +96,21 @@ function formatWind(speed: number | null | undefined, direction: number | null |
 export function ControlPanel({
   solarState, error, importedScene, sceneSource, onPascalImported, onSceneSourceChange,
   weatherDataset, weatherSnapshot, weatherLoading, weatherError,
+  selectedWindow, selectedOpening, windowSolar, analysisDisplayMode,
+  onAnalysisDisplayModeChange, onWindowEdit, onWindowRestore,
+  cumulativeSelection, onCumulativeSelectionChange, cumulativeProgress, cumulativeResult,
+  cumulativeRunning, cumulativeError, onCumulativeStart, onCumulativeCancel, onCumulativeResetScale,
 }: ControlPanelProps) {
   const state = useSimulationStore()
+  const [windowEditorOpen, setWindowEditorOpen] = useState(false)
+  const selectedOpeningId = selectedOpening?.id
   const year = getYear(state.localDate)
   const currentDay = getDayOfYear(state.localDate)
   const maxDay = daysInYear(year)
+
+  useEffect(() => {
+    if (selectedOpeningId) setWindowEditorOpen(true)
+  }, [selectedOpeningId])
 
   const setDayOfYear = (day: number) => {
     if (Number.isFinite(day) && day >= 1 && day <= maxDay) state.setLocalDate(dateFromDayOfYear(year, day))
@@ -83,22 +118,27 @@ export function ControlPanel({
 
   return (
     <aside className="control-panel">
-      <Section title="项目位置">
-        <div className="field-grid two-columns">
-          <label>纬度
-            <input type="number" min="-90" max="90" step="0.0001" value={state.latitude} disabled={state.weatherMode === 'nasa-power-2025'} onChange={(event) => state.setLatitude(event.currentTarget.valueAsNumber)} />
-          </label>
-          <label>经度
-            <input type="number" min="-180" max="180" step="0.0001" value={state.longitude} disabled={state.weatherMode === 'nasa-power-2025'} onChange={(event) => state.setLongitude(event.currentTarget.valueAsNumber)} />
-          </label>
-        </div>
-        <label>项目时区
-          <input type="text" spellCheck={false} value={state.timeZone} disabled={state.weatherMode === 'nasa-power-2025'} onChange={(event) => state.setTimeZone(event.currentTarget.value)} aria-invalid={Boolean(error)} />
-        </label>
-        <p className="hint">美国华盛顿州贝尔维尤 · 项目所在地当地时间</p>
+      <Section title="项目地点" className="panel-order-location">
+        <details className="panel-details">
+          <summary>地点与时区参数</summary>
+          <div className="panel-details-content">
+            <div className="field-grid two-columns">
+              <label>纬度
+                <input type="number" min="-90" max="90" step="0.0001" value={state.latitude} disabled={state.weatherMode === 'nasa-power-2025'} onChange={(event) => state.setLatitude(event.currentTarget.valueAsNumber)} />
+              </label>
+              <label>经度
+                <input type="number" min="-180" max="180" step="0.0001" value={state.longitude} disabled={state.weatherMode === 'nasa-power-2025'} onChange={(event) => state.setLongitude(event.currentTarget.valueAsNumber)} />
+              </label>
+            </div>
+            <label>项目时区
+              <input type="text" spellCheck={false} value={state.timeZone} disabled={state.weatherMode === 'nasa-power-2025'} onChange={(event) => state.setTimeZone(event.currentTarget.value)} aria-invalid={Boolean(error)} />
+            </label>
+            <p className="hint">美国华盛顿州贝尔维尤 · 项目所在地当地时间</p>
+          </div>
+        </details>
       </Section>
 
-      <Section title="日期与时间">
+      <Section title="日期与时间" className="panel-order-time panel-primary">
         <div className="inline-date">
           <input aria-label="当地日期" type="date" value={state.localDate} onInput={(event) => state.setLocalDate(event.currentTarget.value)} />
           <input aria-label="当地时间" type="time" value={minutesToText(state.localTimeMinutes)} onInput={(event) => state.setLocalTimeMinutes(textToMinutes(event.currentTarget.value))} />
@@ -114,44 +154,67 @@ export function ControlPanel({
           </label>
           <label className="check"><input type="checkbox" checked={state.dayLoop} onChange={(event) => state.setDayLoop(event.currentTarget.checked)} /> 循环</label>
         </div>
-        <div className="date-compare">
-          <h3>季节 / 固定日期对比</h3>
-          <label className="range-label"><span>年内日期</span><output>第 {currentDay} / {maxDay} 天</output></label>
-          <input aria-label="固定年内日期滑块" className="range" type="range" min="1" max={maxDay} step="1" value={currentDay} onInput={(event) => setDayOfYear(event.currentTarget.valueAsNumber)} />
-          <label className="day-number-input">固定到第几天
-            <input aria-label="固定到年内第几天" type="number" min="1" max={maxDay} step="1" value={currentDay} onChange={(event) => setDayOfYear(event.currentTarget.valueAsNumber)} />
-          </label>
-          <p className="hint">只改变日期，保留上方选定的当地时间，适合比较不同季节同一时刻的阴影。</p>
-        </div>
-        <div className="year-cycle-card">
-          <h3>全年太阳循环</h3>
-          <p className="cycle-progress">第 {currentDay} / {maxDay} 天 · {minutesToText(state.localTimeMinutes)}</p>
-          <div className="playback-row">
-            <PlaybackButton subject="全年太阳循环" active={state.yearPlaying} onClick={() => state.setYearPlaying(!state.yearPlaying)} />
-            <label className="compact-select">速度
-              <select value={state.yearSpeed} onChange={(event) => state.setYearSpeed(Number(event.currentTarget.value))}>
-                {[
-                  [0.25, '1 天 / 4 秒'],
-                  [0.5, '1 天 / 2 秒'],
-                  [1, '1 天 / 秒'],
-                  [5, '5 天 / 秒'],
-                ].map(([speed, label]) => <option value={speed} key={speed}>{label}</option>)}
-              </select>
-            </label>
-            <label className="check"><input type="checkbox" checked={state.yearLoop} onChange={(event) => state.setYearLoop(event.currentTarget.checked)} /> 循环</label>
+        <details className="nested-details time-advanced-details" open>
+          <summary>日期对比与全年播放</summary>
+          <div className="time-advanced-content">
+            <div className="date-compare">
+              <h3>固定日期对比</h3>
+              <label className="range-label"><span>年内日期</span><output>第 {currentDay} / {maxDay} 天</output></label>
+              <input aria-label="固定年内日期滑块" className="range" type="range" min="1" max={maxDay} step="1" value={currentDay} onInput={(event) => setDayOfYear(event.currentTarget.valueAsNumber)} />
+              <label className="day-number-input">固定到第几天
+                <input aria-label="固定到年内第几天" type="number" min="1" max={maxDay} step="1" value={currentDay} onChange={(event) => setDayOfYear(event.currentTarget.valueAsNumber)} />
+              </label>
+              <p className="hint">只改变日期，保留上方选定的当地时间，适合比较不同季节同一时刻的阴影。</p>
+            </div>
+            <div className="year-cycle-card">
+              <h3>全年太阳循环</h3>
+              <p className="cycle-progress">第 {currentDay} / {maxDay} 天 · {minutesToText(state.localTimeMinutes)}</p>
+              <div className="playback-row">
+                <PlaybackButton subject="全年太阳循环" active={state.yearPlaying} onClick={() => state.setYearPlaying(!state.yearPlaying)} />
+                <label className="compact-select">速度
+                  <select value={state.yearSpeed} onChange={(event) => state.setYearSpeed(Number(event.currentTarget.value))}>
+                    {[
+                      [0.25, '1 天 / 4 秒'],
+                      [0.5, '1 天 / 2 秒'],
+                      [1, '1 天 / 秒'],
+                      [5, '5 天 / 秒'],
+                    ].map(([speed, label]) => <option value={speed} key={speed}>{label}</option>)}
+                  </select>
+                </label>
+                <label className="check"><input type="checkbox" checked={state.yearLoop} onChange={(event) => state.setYearLoop(event.currentTarget.checked)} /> 循环</label>
+              </div>
+              <p className="hint">日期和时间同时连续推进；每天完整经过日出、正午、日落与夜晚。</p>
+            </div>
           </div>
-          <p className="hint">日期和时间同时连续推进；每天完整经过日出、正午、日落与夜晚。</p>
-        </div>
+        </details>
       </Section>
 
-      <Section title="真北方向">
-        <label className="range-label"><span>真北偏角</span><output>{state.northOffsetDeg.toFixed(0)}°</output></label>
-        <input aria-label="真北偏角滑块" className="range" type="range" min="0" max="359" step="1" value={state.northOffsetDeg} onInput={(event) => state.setNorthOffsetDeg(event.currentTarget.valueAsNumber)} />
-        <input aria-label="真北偏角度数" className="angle-input" type="number" min="0" max="359" step="1" value={state.northOffsetDeg} onChange={(event) => state.setNorthOffsetDeg(event.currentTarget.valueAsNumber)} />
-        <p className="hint">从场景 +Z 轴顺时针旋转到真北；建筑模型保持不动。</p>
+      <Section title="模型朝向" className="panel-order-north">
+        <details className="panel-details">
+          <summary>真北偏角 · {state.northOffsetDeg.toFixed(0)}°</summary>
+          <div className="panel-details-content">
+            <label className="range-label"><span>真北偏角</span><output>{state.northOffsetDeg.toFixed(0)}°</output></label>
+            <input aria-label="真北偏角滑块" className="range" type="range" min="0" max="359" step="1" value={state.northOffsetDeg} onInput={(event) => state.setNorthOffsetDeg(event.currentTarget.valueAsNumber)} />
+            <input aria-label="真北偏角度数" className="angle-input" type="number" min="0" max="359" step="1" value={state.northOffsetDeg} onChange={(event) => state.setNorthOffsetDeg(event.currentTarget.valueAsNumber)} />
+            <p className="hint">从场景 +Z 轴顺时针旋转到真北；建筑模型保持不动。</p>
+          </div>
+        </details>
       </Section>
 
-      <Section title="场景显示">
+      <Section title="分析与显示" className="panel-order-display panel-primary">
+        <label>当前显示模式
+          <select value={analysisDisplayMode} onChange={(event) => onAnalysisDisplayModeChange(event.currentTarget.value as AnalysisDisplayMode)}>
+            <option value="normal">普通显示</option>
+            <option value="current-sun-preview">当前阳光预览</option>
+            <option value="cumulative-solar-energy">累计直射太阳能量</option>
+          </select>
+        </label>
+        {analysisDisplayMode === 'current-sun-preview' && (
+          <p className="hint">用于预览当前时刻阳光通过门窗进入室内的位置，不代表累计太阳能量或表面温度。</p>
+        )}
+        {analysisDisplayMode === 'cumulative-solar-energy' && (
+          <p className="hint">结果表示选定时间范围内，地板表面累计接收到的简化直射太阳能量，不包含天空漫射、室内反射和材料热工过程。</p>
+        )}
         <div className="toggle-grid">
           <label className="check"><input type="checkbox" checked={state.showSunPath} onChange={(event) => state.setShowSunPath(event.currentTarget.checked)} /> 太阳轨迹</label>
           <label className="check"><input type="checkbox" checked={state.showGrid} onChange={(event) => state.setShowGrid(event.currentTarget.checked)} /> 网格</label>
@@ -159,16 +222,97 @@ export function ControlPanel({
         </div>
       </Section>
 
-      <Section title="Pascal JSON">
-        <PascalImport
-          importedScene={importedScene}
-          sceneSource={sceneSource}
-          onImported={onPascalImported}
-          onSceneSourceChange={onSceneSourceChange}
+      {analysisDisplayMode === 'cumulative-solar-energy' && <Section title="累计分析" className="panel-order-cumulative panel-primary">
+        <CumulativeSolarPanel
+          selection={cumulativeSelection}
+          onSelectionChange={onCumulativeSelectionChange}
+          running={cumulativeRunning}
+          progress={cumulativeProgress}
+          result={cumulativeResult}
+          error={cumulativeError}
+          canCalculate={Boolean(weatherDataset && importedScene && sceneSource === 'pascal')}
+          onStart={onCumulativeStart}
+          onCancel={onCumulativeCancel}
+          onResetScale={onCumulativeResetScale}
         />
+      </Section>}
+
+      <Section title="模型与导入" className="panel-order-model">
+        <details className="panel-details">
+          <summary>模型来源与 Pascal JSON</summary>
+          <div className="panel-details-content">
+            <PascalImport
+              importedScene={importedScene}
+              sceneSource={sceneSource}
+              onImported={onPascalImported}
+              onSceneSourceChange={onSceneSourceChange}
+            />
+          </div>
+        </details>
       </Section>
 
-      <Section title="天气">
+      <Section title="窗户" className="panel-order-window">
+        <details
+          className="panel-details window-editor"
+          open={windowEditorOpen}
+          onToggle={(event) => setWindowEditorOpen(event.currentTarget.open)}
+        >
+          <summary>{selectedOpening ? `窗户编辑 · ${selectedOpening.name}` : '窗户编辑 · 请在模型中选择窗户'}</summary>
+          <div className="panel-details-content">
+            {!selectedWindow || !selectedOpening ? (
+              <p className="hint">请直接点击三维场景中的窗框、玻璃或窗洞。</p>
+            ) : (
+              <>
+                <dl className="window-readonly-data">
+                  <div><dt>窗户名称</dt><dd>{selectedOpening.name}</dd></div>
+                  <div><dt>窗户 ID</dt><dd>{selectedOpening.id}</dd></div>
+                  <div><dt>所在楼层</dt><dd>{selectedWindow.levelName}</dd></div>
+                  <div><dt>朝向</dt><dd>{selectedOpening.orientationDeg.toFixed(1)}°</dd></div>
+                  <div><dt>玻璃面积</dt><dd>{selectedOpening.glazedArea.toFixed(2)} m²</dd></div>
+                </dl>
+                <div className="window-edit-grid">
+                  <label>宽度（米）
+                    <input type="number" min="0.05" max={selectedWindow.wallLength} step="0.01" value={selectedOpening.width} onChange={(event) => onWindowEdit({ width: event.currentTarget.valueAsNumber })} />
+                  </label>
+                  <label>高度（米）
+                    <input type="number" min="0.05" max={selectedWindow.wallHeight} step="0.01" value={selectedOpening.height} onChange={(event) => onWindowEdit({ height: event.currentTarget.valueAsNumber })} />
+                  </label>
+                  <label>窗台高度（米）
+                    <input type="number" min="0" max={Math.max(0, selectedWindow.wallHeight - selectedOpening.height)} step="0.01" value={selectedOpening.sillHeight} onChange={(event) => onWindowEdit({ sillHeight: event.currentTarget.valueAsNumber })} />
+                  </label>
+                  <label>沿墙位置（米）
+                    <input type="number" min={selectedOpening.width / 2} max={selectedWindow.wallLength - selectedOpening.width / 2} step="0.01" value={selectedOpening.offsetAlongWall} onChange={(event) => onWindowEdit({ offsetAlongWall: event.currentTarget.valueAsNumber })} />
+                  </label>
+                  <label>SHGC（太阳得热系数）
+                    <input type="number" min="0" max="1" step="0.01" value={selectedOpening.shgc} onChange={(event) => onWindowEdit({ shgc: event.currentTarget.valueAsNumber })} />
+                  </label>
+                  <label>VT（可见光透射率）
+                    <input type="number" min="0" max="1" step="0.01" value={selectedOpening.visibleTransmittance} onChange={(event) => onWindowEdit({ visibleTransmittance: event.currentTarget.valueAsNumber })} />
+                  </label>
+                </div>
+                <label className="check window-enabled"><input type="checkbox" checked={selectedOpening.enabled} onChange={(event) => onWindowEdit({ enabled: event.currentTarget.checked })} /> 是否启用</label>
+                <button type="button" className="secondary-button" onClick={onWindowRestore}>恢复原始参数</button>
+              </>
+            )}
+          </div>
+        </details>
+        <details className="panel-details window-solar-details">
+          <summary>窗户分析详情</summary>
+          <div className="panel-details-content">
+            {!selectedOpening ? <p className="hint">尚未选择窗户。</p> : !windowSolar ? <p className="hint">正在计算当前时刻…</p> : (
+              <dl className="solar-data">
+                <div><dt>窗面入射直射辐射</dt><dd>{windowSolar.incidentDirectWm2.toFixed(1)} W/m²</dd></div>
+                <div><dt>透过玻璃的直射辐射</dt><dd>{windowSolar.transmittedDirectWm2.toFixed(1)} W/m²</dd></div>
+                <div><dt>当前太阳入射角</dt><dd>{windowSolar.incidentAngleDeg.toFixed(1)}°</dd></div>
+                <div><dt>当前是否被遮挡</dt><dd>{windowSolar.occluded ? `是 · ${windowSolar.obstructionKind ?? '场景物体'}` : '否'}</dd></div>
+              </dl>
+            )}
+            <p className="analysis-disclaimer">当前结果为简化方案比较值，不是完整建筑热工模拟。</p>
+          </div>
+        </details>
+      </Section>
+
+      <Section title="当前天气" className="panel-order-weather panel-primary">
         <details className="panel-details" open>
           <summary className="weather-summary">
             <span>{state.weatherMode === 'nasa-power-2025' ? 'NASA POWER 2025' : 'Clear Sky'}</span>
@@ -303,7 +447,7 @@ export function ControlPanel({
         </details>
       </Section>
 
-      <Section title="太阳数据">
+      <Section title="太阳计算详情" className="panel-order-solar">
         <details className="panel-details">
           <summary>查看太阳位置与时刻</summary>
           <div className="panel-details-content">

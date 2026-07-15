@@ -106,7 +106,13 @@ function RoofSegment({ segment }: { segment: ParsedRoofSegment }) {
 
 export function Roofs({ roofs }: { roofs: ParsedRoof[] }) {
   return roofs.map((roof) => (
-    <group key={roof.id} position={roof.position} rotation={[0, roof.rotationY, 0]} name={`Pascal roof ${roof.id}`}>
+    <group
+      key={roof.id}
+      position={roof.position}
+      rotation={[0, roof.rotationY, 0]}
+      name={`Pascal roof ${roof.id}`}
+      userData={{ solarOccluder: true, obstructionKind: '屋顶' }}
+    >
       {roof.segments.map((segment) => <RoofSegment key={segment.id} segment={segment} />)}
     </group>
   ))
